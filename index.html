@@ -1,11 +1,137 @@
-<!-- Tabla Dinámica -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Inspecciones Visuales 2026</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card-kpi { border: none; border-radius: 12px; transition: transform 0.2s; }
+    .card-kpi:hover { transform: translateY(-3px); }
+    .bg-gradient-primary { background: linear-gradient(45deg, #1e3c72, #2a5298); color: white; }
+    .bg-gradient-success { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; }
+    .bg-gradient-warning { background: linear-gradient(45deg, #f2994a, #f2c94c); color: white; }
+    .bg-gradient-info { background: linear-gradient(45deg, #00b4db, #0083b0); color: white; }
+    .table-container, .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fa-solid fa-clipboard-check me-2 text-warning"></i>Dashboard Inspecciones Visuales 2026
+      </a>
+      <button class="btn btn-outline-light btn-sm" onclick="cargarDatos()"><i class="fa-solid fa-rotate me-1"></i>Actualizar</button>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4">
+
+    <!-- Filtros Superiores -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Filtrar por Mes:</label>
+        <select id="selectMes" class="form-select shadow-sm" onchange="aplicarFiltros()">
+          <option value="TODOS">Todos los Meses</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Puesto de Trabajo:</label>
+        <select id="selectPuesto" class="form-select shadow-sm" onchange="aplicarFiltros()">
+          <option value="TODOS">Todos los Puestos</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-bold text-secondary">Buscador General:</label>
+        <div class="input-group shadow-sm">
+          <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <input type="text" id="inputBuscar" class="form-control" placeholder="Buscar por Orden, Aviso, Equipo u Objeto Técnico..." onkeyup="aplicarFiltros()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjetas KPI -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card card-kpi bg-gradient-primary shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-uppercase mb-1">Total Registros</h6>
+              <h2 class="mb-0 fw-bold" id="kpiTotal">0</h2>
+            </div>
+            <i class="fa-solid fa-list-check fa-2x opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-kpi bg-gradient-success shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-uppercase mb-1">Órdenes Únicas</h6>
+              <h2 class="mb-0 fw-bold" id="kpiOrdenes">0</h2>
+            </div>
+            <i class="fa-solid fa-file-contract fa-2x opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-kpi bg-gradient-warning shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-uppercase mb-1">Avisos Registrados</h6>
+              <h2 class="mb-0 fw-bold" id="kpiAvisos">0</h2>
+            </div>
+            <i class="fa-solid fa-triangle-exclamation fa-2x opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-kpi bg-gradient-info shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-uppercase mb-1">Equipos Inspeccionados</h6>
+              <h2 class="mb-0 fw-bold" id="kpiEquipos">0</h2>
+            </div>
+            <i class="fa-solid fa-gears fa-2x opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+      <div class="col-md-7">
+        <div class="chart-card">
+          <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-column me-2 text-primary"></i>Inspecciones por Mes</h5>
+          <canvas id="chartMeses" height="120"></canvas>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="chart-card">
+          <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Distribución por Puesto de Trabajo</h5>
+          <canvas id="chartPuestos" height="175"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla Dinámica -->
     <div class="table-container mb-5">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Detalle Completo de Registros</h5>
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Detalle de Inspecciones</h5>
         <span class="badge bg-secondary" id="badgeConteoFilas">0 Registros encontrados</span>
       </div>
-      <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-        <table class="table table-hover table-sm align-middle" style="font-size: 0.9rem;">
+      <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+        <table class="table table-hover table-sm align-middle" style="font-size: 0.88rem;">
           <thead class="table-dark sticky-top">
             <tr>
               <th>Orden</th>
@@ -16,42 +142,168 @@
               <th>Semana</th>
               <th>Objeto Técnico</th>
               <th>Equipo</th>
-              <th>Denominación</th>
             </tr>
           </thead>
           <tbody id="tbodyInspecciones">
             <tr>
-              <td colspan="9" class="text-center text-muted py-4">Cargando datos desde Google Sheets...</td>
+              <td colspan="8" class="text-center text-muted py-4">Cargando datos...</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-function renderizarTabla(data) {
-    const tbody = document.getElementById('tbodyInspecciones');
-    document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
+  </div>
 
-    if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No se encontraron registros coincidentes.</td></tr>';
-      return;
-    }
+  <!-- Script JavaScript -->
+  <script src="script.js"></script>
+    // REEMPLAZA ESTA URL CON TU API WEB APP O CON LA URL CSV DE TU GOOGLE SHEET
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec";
 
-    let html = '';
-    data.forEach(item => {
-      html += `
-        <tr>
-          <td class="fw-bold text-primary">${item.orden}</td>
-          <td>${item.aviso}</td>
-          <td><span class="badge bg-light text-dark border">${item.puestoTrabajo}</span></td>
-          <td>${item.textoBreve}</td>
-          <td>${item.mes}</td>
-          <td><span class="badge bg-info text-dark">Sem ${item.semana}</span></td>
-          <td><small>${item.objetoTecnico}</small></td>
-          <td><code>${item.equipo}</code></td>
-          <td><small>${item.denominacionEquipo}</small></td>
-        </tr>
-      `;
+let rawData = [];
+let chartMesesInstance = null;
+let chartPuestosInstance = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+  cargarDatos();
+});
+
+function cargarDatos() {
+  fetch(API_URL)
+    .then(response => response.json())
+    .then(data => {
+      rawData = data;
+      poblarFiltros();
+      aplicarFiltros();
+    })
+    .catch(error => {
+      console.error("Error al obtener los datos:", error);
+      document.getElementById('tbodyInspecciones').innerHTML = 
+        '<tr><td colspan="8" class="text-center text-danger py-4">Error al cargar la base de datos. Verifica la API URL.</td></tr>';
     });
-    tbody.innerHTML = html;
+}
+
+function poblarFiltros() {
+  const selectMes = document.getElementById('selectMes');
+  const selectPuesto = document.getElementById('selectPuesto');
+
+  const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
+  const puestos = [...new Set(rawData.map(item => item.puestoTrabajo))].filter(Boolean);
+
+  selectMes.innerHTML = '<option value="TODOS">Todos los Meses</option>';
+  meses.forEach(m => {
+    selectMes.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+
+  selectPuesto.innerHTML = '<option value="TODOS">Todos los Puestos</option>';
+  puestos.forEach(p => {
+    selectPuesto.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+}
+
+function aplicarFiltros() {
+  const mesSeleccionado = document.getElementById('selectMes').value;
+  const puestoSeleccionado = document.getElementById('selectPuesto').value;
+  const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
+
+  const datosFiltrados = rawData.filter(item => {
+    const cumpleMes = (mesSeleccionado === 'TODOS' || item.mes === mesSeleccionado);
+    const cumplePuesto = (puestoSeleccionado === 'TODOS' || item.puestoTrabajo === puestoSeleccionado);
+    
+    const textoCombinado = `${item.orden} ${item.aviso} ${item.textoBreve} ${item.objetoTecnico} ${item.equipo}`.toLowerCase();
+    const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
+
+    return cumpleMes && cumplePuesto && cumpleBusqueda;
+  });
+
+  actualizarKPIs(datosFiltrados);
+  renderizarGraficos(datosFiltrados);
+  renderizarTabla(datosFiltrados);
+}
+
+function actualizarKPIs(data) {
+  document.getElementById('kpiTotal').innerText = data.length;
+  
+  const ordenesUnicas = new Set(data.map(i => i.orden).filter(Boolean)).size;
+  const avisosUnicos = new Set(data.map(i => i.aviso).filter(Boolean)).size;
+  const equiposUnicos = new Set(data.map(i => i.equipo).filter(Boolean)).size;
+
+  document.getElementById('kpiOrdenes').innerText = ordenesUnicas;
+  document.getElementById('kpiAvisos').innerText = avisosUnicos;
+  document.getElementById('kpiEquipos').innerText = equiposUnicos;
+}
+
+function renderizarTabla(data) {
+  const tbody = document.getElementById('tbodyInspecciones');
+  document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron registros coincidentes.</td></tr>';
+    return;
   }
+
+  let html = '';
+  data.forEach(item => {
+    html += `
+      <tr>
+        <td class="fw-bold text-primary">${item.orden || ''}</td>
+        <td>${item.aviso || ''}</td>
+        <td><span class="badge bg-light text-dark border">${item.puestoTrabajo || ''}</span></td>
+        <td>${item.textoBreve || ''}</td>
+        <td>${item.mes || ''}</td>
+        <td><span class="badge bg-info text-dark">Sem ${item.semana || ''}</span></td>
+        <td><small>${item.objetoTecnico || ''}</small></td>
+        <td><code>${item.equipo || ''}</code></td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+function renderizarGraficos(data) {
+  // Conteo por Mes
+  const conteoMes = {};
+  data.forEach(i => {
+    const m = i.mes || 'Sin Mes';
+    conteoMes[m] = (conteoMes[m] || 0) + 1;
+  });
+
+  if (chartMesesInstance) chartMesesInstance.destroy();
+  const ctxMes = document.getElementById('chartMeses').getContext('2d');
+  chartMesesInstance = new Chart(ctxMes, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(conteoMes),
+      datasets: [{
+        label: 'Inspecciones',
+        data: Object.values(conteoMes),
+        backgroundColor: '#2a5298',
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+
+  // Conteo por Puesto de Trabajo
+  const conteoPuesto = {};
+  data.forEach(i => {
+    const p = i.puestoTrabajo || 'Sin Asignar';
+    conteoPuesto[p] = (conteoPuesto[p] || 0) + 1;
+  });
+
+  if (chartPuestosInstance) chartPuestosInstance.destroy();
+  const ctxPuesto = document.getElementById('chartPuestos').getContext('2d');
+  chartPuestosInstance = new Chart(ctxPuesto, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(conteoPuesto),
+      datasets: [{
+        data: Object.values(conteoPuesto),
+        backgroundColor: ['#11998e', '#f2994a', '#00b4db', '#e056fd', '#ff7979']
+      }]
+    },
+    options: { responsive: true }
+  });
+}
+</body>
+</html>
