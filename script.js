@@ -1,5 +1,5 @@
 // Coloca la URL pública de la Web App desplegada en Google Apps Script
-const API_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec";
 
 let rawData = [];
 let chartMesesInstance = null;
