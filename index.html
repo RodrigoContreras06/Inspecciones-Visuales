@@ -27,3 +27,31 @@
         </table>
       </div>
     </div>
+
+function renderizarTabla(data) {
+    const tbody = document.getElementById('tbodyInspecciones');
+    document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
+
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No se encontraron registros coincidentes.</td></tr>';
+      return;
+    }
+
+    let html = '';
+    data.forEach(item => {
+      html += `
+        <tr>
+          <td class="fw-bold text-primary">${item.orden}</td>
+          <td>${item.aviso}</td>
+          <td><span class="badge bg-light text-dark border">${item.puestoTrabajo}</span></td>
+          <td>${item.textoBreve}</td>
+          <td>${item.mes}</td>
+          <td><span class="badge bg-info text-dark">Sem ${item.semana}</span></td>
+          <td><small>${item.objetoTecnico}</small></td>
+          <td><code>${item.equipo}</code></td>
+          <td><small>${item.denominacionEquipo}</small></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+  }
