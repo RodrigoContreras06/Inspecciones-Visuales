@@ -1,5 +1,4 @@
-// Coloca la URL pública de la Web App desplegada en Google Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Reemplaza con tu URL de Apps Script
 
 let rawData = [];
 let chartMesesInstance = null;
@@ -26,35 +25,48 @@ function cargarDatos() {
 
 function poblarFiltros() {
   const selectMes = document.getElementById('selectMes');
-  const selectPuesto = document.getElementById('selectPuesto');
+  const selectEstacion = document.getElementById('selectEstacion');
+  const selectEstatus = document.getElementById('selectEstatus');
 
   const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
-  const puestos = [...new Set(rawData.map(item => item.puestoTrabajo))].filter(Boolean);
+  const estaciones = [...new Set(rawData.map(item => item.puestoTrabajo || item.estacion))].filter(Boolean);
+  const estatusList = [...new Set(rawData.map(item => item.statusUsuario || item.statusSistema))].filter(Boolean);
 
-  selectMes.innerHTML = '<option value="TODOS">Todos los Meses</option>';
+  selectMes.innerHTML = '<option value="TODOS">Todos</option>';
   meses.forEach(m => {
     selectMes.innerHTML += `<option value="${m}">${m}</option>`;
   });
 
-  selectPuesto.innerHTML = '<option value="TODOS">Todos los Puestos</option>';
-  puestos.forEach(p => {
-    selectPuesto.innerHTML += `<option value="${p}">${p}</option>`;
+  selectEstacion.innerHTML = '<option value="TODOS">Todas</option>';
+  estaciones.forEach(e => {
+    selectEstacion.innerHTML += `<option value="${e}">${e}</option>`;
+  });
+
+  selectEstatus.innerHTML = '<option value="TODOS">Todos</option>';
+  estatusList.forEach(es => {
+    selectEstatus.innerHTML += `<option value="${es}">${es}</option>`;
   });
 }
 
 function aplicarFiltros() {
   const mesSeleccionado = document.getElementById('selectMes').value;
-  const puestoSeleccionado = document.getElementById('selectPuesto').value;
+  const estacionSeleccionada = document.getElementById('selectEstacion').value;
+  const estatusSeleccionado = document.getElementById('selectEstatus').value;
   const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
 
   const datosFiltrados = rawData.filter(item => {
+    const estacionItem = item.puestoTrabajo || item.estacion || '';
+    const estatusItem = item.statusUsuario || item.statusSistema || '';
+
     const cumpleMes = (mesSeleccionado === 'TODOS' || item.mes === mesSeleccionado);
-    const cumplePuesto = (puestoSeleccionado === 'TODOS' || item.puestoTrabajo === puestoSeleccionado);
+    const cumpleEstacion = (estacionSeleccionada === 'TODOS' || estacionItem === estacionSeleccionada);
+    const cumpleEstatus = (estatusSeleccionado === 'TODOS' || estatusItem === estatusSeleccionado);
     
-    const textoCombinado = `${item.orden} ${item.aviso} ${item.textoBreve} ${item.objetoTecnico} ${item.equipo} ${item.denominacionEquipo}`.toLowerCase();
+    // Búsqueda general que incluye Orden (A), Aviso (C), Equipo (N), etc.
+    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${estacionItem} ${estatusItem}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
-    return cumpleMes && cumplePuesto && cumpleBusqueda;
+    return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleBusqueda;
   });
 
   actualizarKPIs(datosFiltrados);
@@ -103,7 +115,6 @@ function renderizarTabla(data) {
 }
 
 function renderizarGraficos(data) {
-  // Conteo por Mes
   const conteoMes = {};
   data.forEach(i => {
     const m = i.mes || 'Sin Mes';
@@ -126,11 +137,10 @@ function renderizarGraficos(data) {
     options: { responsive: true, plugins: { legend: { display: false } } }
   });
 
-  // Conteo por Puesto de Trabajo
-  const conteoPuesto = {};
+  const conteoEstacion = {};
   data.forEach(i => {
-    const p = i.puestoTrabajo || 'Sin Asignar';
-    conteoPuesto[p] = (conteoPuesto[p] || 0) + 1;
+    const p = i.puestoTrabajo || i.estacion || 'Sin Asignar';
+    conteoEstacion[p] = (conteoEstacion[p] || 0) + 1;
   });
 
   if (chartPuestosInstance) chartPuestosInstance.destroy();
@@ -138,9 +148,9 @@ function renderizarGraficos(data) {
   chartPuestosInstance = new Chart(ctxPuesto, {
     type: 'doughnut',
     data: {
-      labels: Object.keys(conteoPuesto),
+      labels: Object.keys(conteoEstacion),
       datasets: [{
-        data: Object.values(conteoPuesto),
+        data: Object.values(conteoEstacion),
         backgroundColor: ['#11998e', '#f2994a', '#00b4db', '#e056fd', '#ff7979']
       }]
     },
