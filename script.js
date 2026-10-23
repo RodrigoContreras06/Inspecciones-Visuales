@@ -1,9 +1,10 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Mantén tu URL exacta
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Asegúrate de mantener tu URL exacta
 
 let rawData = [];
 let chartMesesInstance = null;
 let chartEstatusInstance = null;
 let semaforoFiltroActivo = 0; // 0 = Todos, 1 = Nivel 1, 2 = Nivel 2, 3 = Nivel 3
+let soloCriticasS = false;
 
 document.addEventListener("DOMContentLoaded", function() {
   cargarDatos();
@@ -52,6 +53,17 @@ function poblarFiltros() {
   });
 }
 
+function toggleFiltroCriticaS() {
+  soloCriticasS = !soloCriticasS;
+  const card = document.getElementById('cardCriticaS');
+  if (soloCriticasS) {
+    card.classList.add('active');
+  } else {
+    card.classList.remove('active');
+  }
+  aplicarFiltros();
+}
+
 function filtrarSemaforo(nivel) {
   semaforoFiltroActivo = nivel;
   
@@ -78,11 +90,12 @@ function aplicarFiltros() {
     const cumpleEstatus = (estatusSeleccionado === 'TODOS' || item.estatusAL === estatusSeleccionado);
     
     const cumpleSemaforo = (semaforoFiltroActivo === 0 || item.semaforoAV === semaforoFiltroActivo);
+    const cumpleCriticaS = (!soloCriticasS || String(item.esCriticaAB).trim().toUpperCase() === 'S');
 
     const textoCombinado = `${item.orden} ${item.aviso} ${item.avisoY4} ${item.equipo} ${item.objetoTecnico} ${item.estacion} ${item.estatusAL}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
-    return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleSemaforo && cumpleBusqueda;
+    return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleSemaforo && cumpleCriticaS && cumpleBusqueda;
   });
 
   actualizarKPIsAvanzados(datosFiltrados);
@@ -96,19 +109,28 @@ function actualizarKPIsAvanzados(data) {
   const ordenesUnicas = new Set(data.map(i => i.orden).filter(Boolean)).size;
   document.getElementById('kpiOrdenesTotales').innerText = ordenesUnicas;
 
-  // Órdenes Gestionadas (Suma de OTAU OTEF + Cancelada + Asignado a otro puesto de trabajo)
+  // Órdenes Gestionadas (Suma: OTAU OTEF + Cancelada + Asignado a otro puesto de trabajo)
   const gestionadas = data.filter(i => {
     const est = String(i.estatusAL).toUpperCase();
     return est.includes("OTAU OTEF") || est.includes("CANCELADA") || est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO");
   }).length;
+
   document.getElementById('kpiEjecutadas').innerText = gestionadas;
 
-  // Avisos Y4 Únicos (Columna AU)
-  const avisosY4Unicos = new Set(data.map(i => i.avisoY4 || i.aviso).filter(Boolean)).size;
+  // Porcentaje de Cumplimiento / Gestión
+  const pct = ordenesUnicas > 0 ? ((gestionadas / ordenesUnicas) * 100).toFixed(1) : 0;
+  document.getElementById('kpiPorcentajeEjecucion').innerText = `${pct}%`;
+
+  // Avisos Y4 Únicos Reales (Columna AU no vacía)
+  const avisosY4Validos = data.filter(i => {
+    const y4 = String(i.avisoY4).trim();
+    return y4 !== '' && y4 !== '0' && y4 !== String(i.aviso).trim();
+  });
+  const avisosY4Unicos = new Set(avisosY4Validos.map(i => i.avisoY4)).size;
   document.getElementById('kpiAvisos').innerText = avisosY4Unicos;
 
-  // Críticas en Columna AB ('S')
-  const criticasS = data.filter(i => String(i.esCriticaAB).toUpperCase() === 'S').length;
+  // Críticas S (Columna AB)
+  const criticasS = data.filter(i => String(i.esCriticaAB).trim().toUpperCase() === 'S').length;
   document.getElementById('kpiCriticas').innerText = criticasS;
 
   // Conteo Semáforo Columna AV (1, 2, 3)
@@ -123,6 +145,18 @@ function actualizarKPIsAvanzados(data) {
   document.getElementById('semaforo3').innerText = sem3;
 }
 
+function formatearFechaDDMMYYYY(fechaStr) {
+  if (!fechaStr) return '-';
+  let f = fechaStr;
+  if (f.includes('T')) f = f.split('T')[0];
+  
+  const partes = f.split('-');
+  if (partes.length === 3) {
+    return `${partes[2]}/${partes[1]}/${partes[0]}`; // DD/MM/YYYY
+  }
+  return f;
+}
+
 function renderizarTabla(data) {
   const tbody = document.getElementById('tbodyInspecciones');
   document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
@@ -132,40 +166,77 @@ function renderizarTabla(data) {
     return;
   }
 
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
   let html = '';
   data.forEach(item => {
-    // Badge de Criticidad Semáforo
+    // 1. Semáforo de Criticidad Nivel 1, 2, 3
     let semBadge = '';
     if (item.semaforoAV === 1) semBadge = '<span class="badge bg-danger">Nivel 1</span>';
     else if (item.semaforoAV === 2) semBadge = '<span class="badge bg-warning text-dark">Nivel 2</span>';
     else semBadge = '<span class="badge bg-success">Nivel 3</span>';
 
-    // Badge de Criticidad Columna AB (Muestra la letra exacta: S, A, B, etc.)
-    const letraAB = item.esCriticaAB || '-';
+    // 2. Criticidad Columna AB con Colores Corporativos (D, E, N, S, X)
+    const letraAB = String(item.esCriticaAB).trim().toUpperCase() || '-';
     let critBadge = '';
-    if (letraAB.toUpperCase() === 'S') {
-      critBadge = '<span class="badge bg-danger">S</span>';
-    } else if (letraAB !== '-') {
-      critBadge = `<span class="badge bg-secondary">${letraAB}</span>`;
-    } else {
-      critBadge = '<span class="badge bg-light text-muted border">-</span>';
+    switch(letraAB) {
+      case 'S':
+        critBadge = '<span class="badge bg-danger" title="Crítico x Seguridad">S</span>';
+        break;
+      case 'D':
+        critBadge = '<span class="badge bg-warning text-dark" title="Crítico x Disponibilidad">D</span>';
+        break;
+      case 'E':
+        critBadge = '<span class="badge bg-primary" title="Esencial">E</span>';
+        break;
+      case 'N':
+        critBadge = '<span class="badge bg-secondary" title="No Crítico">N</span>';
+        break;
+      case 'X':
+        critBadge = '<span class="badge bg-dark" title="No Valorado">X</span>';
+        break;
+      default:
+        critBadge = `<span class="badge bg-light text-dark border">${letraAB}</span>`;
     }
 
-    // Formatear Fecha Fin Extrema limpia sin zona horaria
-    let fechaLimpia = item.fechaFinExtrema || '';
-    if (fechaLimpia.includes('T')) {
-      fechaLimpia = fechaLimpia.split('T')[0];
+    // 3. Semáforo para Fecha Fin Extrema
+    let fechaLimpiaStr = item.fechaFinExtrema || '';
+    if (fechaLimpiaStr.includes('T')) fechaLimpiaStr = fechaLimpiaStr.split('T')[0];
+    
+    let fechaBadge = '';
+    const fechaFormateada = formatearFechaDDMMYYYY(fechaLimpiaStr);
+    
+    const est = String(item.estatusAL).toUpperCase();
+    const esGestionada = est.includes("OTAU OTEF") || est.includes("CANCELADA") || est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO");
+
+    if (fechaLimpiaStr && !esGestionada) {
+      const fechaObj = new Date(fechaLimpiaStr + "T00:00:00");
+      const diffDias = Math.ceil((fechaObj - hoy) / (1000 * 60 * 60 * 24));
+
+      if (diffDias < 0) {
+        fechaBadge = `<span class="badge bg-danger" title="Vencido hace ${Math.abs(diffDias)} días">${fechaFormateada}</span>`;
+      } else if (diffDias <= 15) {
+        fechaBadge = `<span class="badge bg-warning text-dark" title="Próximo a vencer (${diffDias} días)">${fechaFormateada}</span>`;
+      } else {
+        fechaBadge = `<span class="badge bg-success">${fechaFormateada}</span>`;
+      }
+    } else {
+      fechaBadge = `<span class="badge bg-light text-dark border">${fechaFormateada}</span>`;
     }
+
+    // Aviso Y4 limpio
+    const y4Texto = (item.avisoY4 && item.avisoY4 !== '0' && item.avisoY4 !== item.aviso) ? item.avisoY4 : '-';
 
     html += `
       <tr>
         <td class="fw-bold text-primary">${item.orden || ''}</td>
         <td>${item.aviso || ''}</td>
-        <td><small class="text-muted fw-bold">${item.avisoY4 || ''}</small></td>
+        <td><small class="fw-bold text-dark">${y4Texto}</small></td>
         <td><span class="badge bg-light text-dark border">${item.estacion || ''}</span></td>
         <td>${item.textoBreve || ''}</td>
         <td>${item.mes || ''}</td>
-        <td><small>${fechaLimpia}</small></td>
+        <td>${fechaBadge}</td>
         <td><small>${item.objetoTecnico || ''}</small></td>
         <td><code class="text-danger">${item.equipo || ''}</code></td>
         <td><small>${item.denominacionEquipo || ''}</small></td>
