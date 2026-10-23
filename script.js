@@ -162,7 +162,7 @@ function renderizarTabla(data) {
   document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
     return;
   }
 
@@ -171,43 +171,31 @@ function renderizarTabla(data) {
 
   let html = '';
   data.forEach(item => {
-    // 1. Semáforo de Criticidad Nivel 1, 2, 3
+    // Semáforo Nivel 1, 2, 3
     let semBadge = '';
     if (item.semaforoAV === 1) semBadge = '<span class="badge bg-danger">Nivel 1</span>';
     else if (item.semaforoAV === 2) semBadge = '<span class="badge bg-warning text-dark">Nivel 2</span>';
     else semBadge = '<span class="badge bg-success">Nivel 3</span>';
 
-    // 2. Criticidad Columna AB con Colores Corporativos (D, E, N, S, X)
-    const letraAB = String(item.esCriticaAB).trim().toUpperCase() || '-';
+    // Criticidad Columna AB
+    const letraAB = String(item.esCriticaAB || "-").trim().toUpperCase();
     let critBadge = '';
     switch(letraAB) {
-      case 'S':
-        critBadge = '<span class="badge bg-danger" title="Crítico x Seguridad">S</span>';
-        break;
-      case 'D':
-        critBadge = '<span class="badge bg-warning text-dark" title="Crítico x Disponibilidad">D</span>';
-        break;
-      case 'E':
-        critBadge = '<span class="badge bg-primary" title="Esencial">E</span>';
-        break;
-      case 'N':
-        critBadge = '<span class="badge bg-secondary" title="No Crítico">N</span>';
-        break;
-      case 'X':
-        critBadge = '<span class="badge bg-dark" title="No Valorado">X</span>';
-        break;
-      default:
-        critBadge = `<span class="badge bg-light text-dark border">${letraAB}</span>`;
+      case 'S': critBadge = '<span class="badge bg-danger" title="Crítico x Seguridad">S</span>'; break;
+      case 'D': critBadge = '<span class="badge bg-warning text-dark" title="Crítico x Disponibilidad">D</span>'; break;
+      case 'E': critBadge = '<span class="badge bg-primary" title="Esencial">E</span>'; break;
+      case 'N': critBadge = '<span class="badge bg-secondary" title="No Crítico">N</span>'; break;
+      case 'X': critBadge = '<span class="badge bg-dark" title="No Valorado">X</span>'; break;
+      default: critBadge = `<span class="badge bg-light text-dark border">${letraAB}</span>`;
     }
 
-    // 3. Semáforo para Fecha Fin Extrema
+    // Fecha Fin Extrema con Semáforo
     let fechaLimpiaStr = item.fechaFinExtrema || '';
     if (fechaLimpiaStr.includes('T')) fechaLimpiaStr = fechaLimpiaStr.split('T')[0];
     
     let fechaBadge = '';
     const fechaFormateada = formatearFechaDDMMYYYY(fechaLimpiaStr);
-    
-    const est = String(item.estatusAL).toUpperCase();
+    const est = String(item.estatusAL || "").toUpperCase();
     const esGestionada = est.includes("OTAU OTEF") || est.includes("CANCELADA") || est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO");
 
     if (fechaLimpiaStr && !esGestionada) {
@@ -215,9 +203,9 @@ function renderizarTabla(data) {
       const diffDias = Math.ceil((fechaObj - hoy) / (1000 * 60 * 60 * 24));
 
       if (diffDias < 0) {
-        fechaBadge = `<span class="badge bg-danger" title="Vencido hace ${Math.abs(diffDias)} días">${fechaFormateada}</span>`;
+        fechaBadge = `<span class="badge bg-danger" title="Vencido">${fechaFormateada}</span>`;
       } else if (diffDias <= 15) {
-        fechaBadge = `<span class="badge bg-warning text-dark" title="Próximo a vencer (${diffDias} días)">${fechaFormateada}</span>`;
+        fechaBadge = `<span class="badge bg-warning text-dark" title="Próximo a vencer">${fechaFormateada}</span>`;
       } else {
         fechaBadge = `<span class="badge bg-success">${fechaFormateada}</span>`;
       }
@@ -225,8 +213,13 @@ function renderizarTabla(data) {
       fechaBadge = `<span class="badge bg-light text-dark border">${fechaFormateada}</span>`;
     }
 
-    // Aviso Y4 limpio
     const y4Texto = (item.avisoY4 && item.avisoY4 !== '0' && item.avisoY4 !== item.aviso) ? item.avisoY4 : '-';
+
+    // Botón dinámico para el link de OneDrive (Columna AZ)
+    let btnInforme = '<span class="text-muted">-</span>';
+    if (item.linkInforme && item.linkInforme.startsWith('http')) {
+      btnInforme = `<a href="${item.linkInforme}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1 shadow-sm" title="Abrir informe en OneDrive"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Ver</a>`;
+    }
 
     html += `
       <tr>
@@ -242,6 +235,7 @@ function renderizarTabla(data) {
         <td><small>${item.denominacionEquipo || ''}</small></td>
         <td class="text-center">${critBadge}</td>
         <td class="text-center">${semBadge}</td>
+        <td class="text-center">${btnInforme}</td>
       </tr>
     `;
   });
