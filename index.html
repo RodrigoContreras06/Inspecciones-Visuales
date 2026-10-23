@@ -19,8 +19,10 @@
     .bg-gradient-primary { background: linear-gradient(45deg, #1e3c72, #2a5298); color: white; }
     .bg-gradient-success { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; }
     .bg-gradient-warning { background: linear-gradient(45deg, #f2994a, #f2c94c); color: white; }
-    .bg-gradient-info { background: linear-gradient(45deg, #00b4db, #0083b0); color: white; }
     .table-container, .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .btn-semaforo { cursor: pointer; transition: all 0.2s ease-in-out; border: 1px solid transparent; }
+    .btn-semaforo:hover { transform: scale(1.05); opacity: 0.9; }
+    .btn-semaforo.active { border-color: #fff !important; box-shadow: 0 0 8px rgba(255,255,255,0.8); }
   </style>
 </head>
 <body>
@@ -37,18 +39,18 @@
 
   <div class="container-fluid px-4">
 
-   <!-- Filtros Superiores Dinámicos -->
+    <!-- Filtros Superiores -->
     <div class="row g-3 mb-4">
       <div class="col-md-2">
         <label class="form-label fw-bold text-secondary">Mes:</label>
         <select id="selectMes" class="form-select shadow-sm" onchange="aplicarFiltros()">
-          <option value="TODOS">Todos</option>
+          <option value="TODOS">Todos los Meses</option>
         </select>
       </div>
       <div class="col-md-2">
         <label class="form-label fw-bold text-secondary">Estación:</label>
         <select id="selectEstacion" class="form-select shadow-sm" onchange="aplicarFiltros()">
-          <option value="TODOS">Todas</option>
+          <option value="TODAS">Todas</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -66,17 +68,17 @@
       </div>
     </div>
 
-   <!-- Nuevas Tarjetas KPI Operativas -->
+    <!-- Tarjetas KPI Operativas -->
     <div class="row g-3 mb-4">
       <div class="col-md-2">
         <div class="card card-kpi bg-gradient-primary shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75%rem;">Órdenes Totales</h6>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Órdenes Totales</h6>
           <h3 class="mb-0 fw-bold" id="kpiOrdenesTotales">0</h3>
         </div>
       </div>
       <div class="col-md-2">
         <div class="card card-kpi bg-gradient-success shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Ejecutadas</h6>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Ejecutadas (OTAU OTEF)</h6>
           <h3 class="mb-0 fw-bold" id="kpiEjecutadas">0</h3>
         </div>
       </div>
@@ -88,26 +90,29 @@
       </div>
       <div class="col-md-2">
         <div class="card card-kpi bg-danger shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Críticas (Col. AB)</h6>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Críticas S</h6>
           <h3 class="mb-0 fw-bold" id="kpiCriticas">0</h3>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card card-kpi bg-dark shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1 text-warning" style="font-size: 0.75rem;">Semáforo de Criticidad (Col. AV)</h6>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="text-uppercase mb-0 text-warning" style="font-size: 0.75rem;">Semáforo de Criticidad</h6>
+            <button class="btn btn-link btn-sm text-light p-0 text-decoration-none" style="font-size: 0.7rem;" onclick="filtrarSemaforo(0)">Ver Todos</button>
+          </div>
           <div class="d-flex justify-content-around mt-2">
-            <span class="badge bg-danger fs-6">Nivel 1: <span id="semaforo1">0</span></span>
-            <span class="badge bg-warning text-dark fs-6">Nivel 2: <span id="semaforo2">0</span></span>
-            <span class="badge bg-success fs-6">Nivel 3: <span id="semaforo3">0</span></span>
+            <span id="btnSem1" class="badge bg-danger fs-6 btn-semaforo" onclick="filtrarSemaforo(1)">Nivel 1: <span id="semaforo1">0</span></span>
+            <span id="btnSem2" class="badge bg-warning text-dark fs-6 btn-semaforo" onclick="filtrarSemaforo(2)">Nivel 2: <span id="semaforo2">0</span></span>
+            <span id="btnSem3" class="badge bg-success fs-6 btn-semaforo" onclick="filtrarSemaforo(3)">Nivel 3: <span id="semaforo3">0</span></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Gráficos con Altura Simétrica y Espacio para Etiquetas -->
+    <!-- Gráficos Unificados (Sin Duplicación) -->
     <div class="row mb-4">
       <div class="col-md-7">
-        <div class="chart-card" style="height: 420px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="chart-card" style="height: 380px; display: flex; flex-direction: column; justify-content: space-between;">
           <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-chart-column me-2 text-primary"></i>Inspecciones por Mes</h5>
           <div style="flex-grow: 1; position: relative;">
             <canvas id="chartMeses"></canvas>
@@ -115,7 +120,7 @@
         </div>
       </div>
       <div class="col-md-5">
-        <div class="chart-card" style="height: 420px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="chart-card" style="height: 380px; display: flex; flex-direction: column; justify-content: space-between;">
           <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Cumplimiento por Estatus</h5>
           <div style="flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center;">
             <canvas id="chartPuestos"></canvas>
@@ -124,23 +129,7 @@
       </div>
     </div>
 
-    <!-- Gráficos -->
-    <div class="row mb-4">
-      <div class="col-md-7">
-        <div class="chart-card">
-          <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-column me-2 text-primary"></i>Inspecciones por Mes</h5>
-          <canvas id="chartMeses" height="120"></canvas>
-        </div>
-      </div>
-      <div class="col-md-5">
-        <div class="chart-card">
-          <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Cumplimiento por Estatus de Inspección</h5>
-          <canvas id="chartPuestos" height="175"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla Dinámica -->
+    <!-- Tabla Dinámica Actualizada -->
     <div class="table-container mb-5">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Detalle Completo de Registros</h5>
@@ -152,18 +141,21 @@
             <tr>
               <th>Orden</th>
               <th>Aviso</th>
-              <th>Pto. Trabajo</th>
+              <th>Aviso AU</th>
+              <th>Estación</th>
               <th>Texto Breve</th>
               <th>Mes</th>
-              <th>Semana</th>
+              <th>Fecha Fin Ex.</th>
               <th>Objeto Técnico</th>
               <th>Equipo</th>
               <th>Denominación</th>
+              <th>Crítica</th>
+              <th>Criticidad</th>
             </tr>
           </thead>
           <tbody id="tbodyInspecciones">
             <tr>
-              <td colspan="9" class="text-center text-muted py-4">Cargando datos...</td>
+              <td colspan="12" class="text-center text-muted py-4">Cargando datos...</td>
             </tr>
           </tbody>
         </table>
@@ -172,7 +164,6 @@
 
   </div>
 
-  <!-- Archivo JavaScript JS -->
   <script src="script.js"></script>
 </body>
 </html>
