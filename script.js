@@ -1,8 +1,8 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Mantén tu URL exacta de Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Mantén tu URL exacta
 
 let rawData = [];
 let chartMesesInstance = null;
-let chartEstatusInstance = null; // Cambiado para enfocar en Estatus/Cumplimiento
+let chartEstatusInstance = null;
 
 document.addEventListener("DOMContentLoaded", function() {
   cargarDatos();
@@ -28,12 +28,11 @@ function poblarFiltros() {
   const selectEstacion = document.getElementById('selectEstacion');
   const selectEstatus = document.getElementById('selectEstatus');
 
-  // Limpiar y extraer valores únicos limpios
   const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
-  // Estación corresponde estrictamente a la columna de Puesto de Trabajo / Estación (row[4])
-  const estaciones = [...new Set(rawData.map(item => item.puestoTrabajo))].filter(Boolean);
-  // Estatus corresponde estrictamente al Status de Usuario o Sistema (ej. Pendiente, Programado, etc.)
-  const estatusList = [...new Set(rawData.map(item => item.estatus || item.statusUsuario))].filter(Boolean);
+  // Estación estrictamente de la Columna U (item.estacion)
+  const estaciones = [...new Set(rawData.map(item => item.estacion))].filter(Boolean);
+  // Estatus estrictamente de la Columna AL (item.estatusAL)
+  const estatusList = [...new Set(rawData.map(item => item.estatusAL))].filter(Boolean);
 
   selectMes.innerHTML = '<option value="TODOS">Todos los Meses</option>';
   meses.forEach(m => {
@@ -59,13 +58,11 @@ function aplicarFiltros() {
 
   const datosFiltrados = rawData.filter(item => {
     const cumpleMes = (mesSeleccionado === 'TODOS' || item.mes === mesSeleccionado);
-    const cumpleEstacion = (estacionSeleccionada === 'TODAS' || item.puestoTrabajo === estacionSeleccionada);
+    const cumpleEstacion = (estacionSeleccionada === 'TODAS' || item.estacion === estacionSeleccionada);
+    const cumpleEstatus = (estatusSeleccionado === 'TODOS' || item.estatusAL === estatusSeleccionado);
     
-    const estatusItem = item.estatus || item.statusUsuario || '';
-    const cumpleEstatus = (estatusSeleccionado === 'TODOS' || estatusItem === estatusSeleccionado);
-    
-    // Buscador general (Orden, Aviso, Equipo, Objeto Técnico)
-    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${item.puestoTrabajo} ${estatusItem}`.toLowerCase();
+    // Buscador general
+    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${item.estacion} ${item.estatusAL}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
     return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleBusqueda;
@@ -73,7 +70,7 @@ function aplicarFiltros() {
 
   actualizarKPIs(datosFiltrados);
   renderizarGraficoMeses(datosFiltrados);
-  renderizarGraficoEstatus(datosFiltrados); // Gráfica circular enfocada en cumplimiento por estatus
+  renderizarGraficoEstatus(datosFiltrados); // Gráfica de cumplimiento por Estatus (Columna AL)
   renderizarTabla(datosFiltrados);
 }
 
@@ -104,7 +101,7 @@ function renderizarTabla(data) {
       <tr>
         <td class="fw-bold text-primary">${item.orden || ''}</td>
         <td>${item.aviso || ''}</td>
-        <td><span class="badge bg-light text-dark border">${item.puestoTrabajo || ''}</span></td>
+        <td><span class="badge bg-light text-dark border">${item.estacion || ''}</span></td>
         <td>${item.textoBreve || ''}</td>
         <td>${item.mes || ''}</td>
         <td><span class="badge bg-info text-dark">Sem ${item.semana || ''}</span></td>
@@ -142,10 +139,10 @@ function renderizarGraficoMeses(data) {
 }
 
 function renderizarGraficoEstatus(data) {
-  // Agrupar estrictamente por Estatus (para medir porcentaje de cumplimiento/estado)
+  // Gráfica enfocada en el porcentaje de cumplimiento por Estatus (Columna AL)
   const conteoEstatus = {};
   data.forEach(i => {
-    const est = i.estatus || i.statusUsuario || 'Sin Estatus';
+    const est = i.estatusAL || 'Sin Estatus';
     conteoEstatus[est] = (conteoEstatus[est] || 0) + 1;
   });
 
@@ -155,7 +152,6 @@ function renderizarGraficoEstatus(data) {
   if (chartEstatusInstance) chartEstatusInstance.destroy();
   const ctxEstatus = document.getElementById('chartPuestos').getContext('2d');
   
-  // Cambiamos el título visual de la tarjeta de la gráfica si lo deseas o mantenemos la dona de cumplimiento
   chartEstatusInstance = new Chart(ctxEstatus, {
     type: 'doughnut',
     data: {
