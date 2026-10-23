@@ -66,49 +66,59 @@
       </div>
     </div>
 
-    <!-- Tarjetas KPI -->
+   <!-- Nuevas Tarjetas KPI Operativas -->
     <div class="row g-3 mb-4">
-      <div class="col-md-3">
-        <div class="card card-kpi bg-gradient-primary shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-uppercase mb-1">Total Registros</h6>
-              <h2 class="mb-0 fw-bold" id="kpiTotal">0</h2>
-            </div>
-            <i class="fa-solid fa-list-check fa-2x opacity-75"></i>
+      <div class="col-md-2">
+        <div class="card card-kpi bg-gradient-primary shadow-sm p-3 text-white">
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75%rem;">Órdenes Totales</h6>
+          <h3 class="mb-0 fw-bold" id="kpiOrdenesTotales">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card card-kpi bg-gradient-success shadow-sm p-3 text-white">
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Ejecutadas</h6>
+          <h3 class="mb-0 fw-bold" id="kpiEjecutadas">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card card-kpi bg-gradient-warning shadow-sm p-3 text-white">
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Avisos</h6>
+          <h3 class="mb-0 fw-bold" id="kpiAvisos">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="card card-kpi bg-danger shadow-sm p-3 text-white">
+          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Críticas (Col. AB)</h6>
+          <h3 class="mb-0 fw-bold" id="kpiCriticas">0</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card card-kpi bg-dark shadow-sm p-3 text-white">
+          <h6 class="text-uppercase mb-1 text-warning" style="font-size: 0.75rem;">Semáforo de Criticidad (Col. AV)</h6>
+          <div class="d-flex justify-content-around mt-2">
+            <span class="badge bg-danger fs-6">Nivel 1: <span id="semaforo1">0</span></span>
+            <span class="badge bg-warning text-dark fs-6">Nivel 2: <span id="semaforo2">0</span></span>
+            <span class="badge bg-success fs-6">Nivel 3: <span id="semaforo3">0</span></span>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card card-kpi bg-gradient-success shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-uppercase mb-1">Órdenes Únicas</h6>
-              <h2 class="mb-0 fw-bold" id="kpiOrdenes">0</h2>
-            </div>
-            <i class="fa-solid fa-file-contract fa-2x opacity-75"></i>
+    </div>
+
+    <!-- Gráficos con Altura Simétrica y Espacio para Etiquetas -->
+    <div class="row mb-4">
+      <div class="col-md-7">
+        <div class="chart-card" style="height: 420px; display: flex; flex-direction: column; justify-content: space-between;">
+          <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-chart-column me-2 text-primary"></i>Inspecciones por Mes</h5>
+          <div style="flex-grow: 1; position: relative;">
+            <canvas id="chartMeses"></canvas>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card card-kpi bg-gradient-warning shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-uppercase mb-1">Avisos Registrados</h6>
-              <h2 class="mb-0 fw-bold" id="kpiAvisos">0</h2>
-            </div>
-            <i class="fa-solid fa-triangle-exclamation fa-2x opacity-75"></i>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card card-kpi bg-gradient-info shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-uppercase mb-1">Equipos Inspeccionados</h6>
-              <h2 class="mb-0 fw-bold" id="kpiEquipos">0</h2>
-            </div>
-            <i class="fa-solid fa-gears fa-2x opacity-75"></i>
+      <div class="col-md-5">
+        <div class="chart-card" style="height: 420px; display: flex; flex-direction: column; justify-content: space-between;">
+          <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Cumplimiento por Estatus</h5>
+          <div style="flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+            <canvas id="chartPuestos"></canvas>
           </div>
         </div>
       </div>
