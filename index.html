@@ -14,15 +14,16 @@
 
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card-kpi { border: none; border-radius: 12px; transition: transform 0.2s; }
-    .card-kpi:hover { transform: translateY(-3px); }
+    .card-kpi { border: none; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; }
+    .card-kpi:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important; }
+    .btn-card-clickable { cursor: pointer; }
     .bg-gradient-primary { background: linear-gradient(45deg, #1e3c72, #2a5298); color: white; }
     .bg-gradient-success { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; }
     .bg-gradient-warning { background: linear-gradient(45deg, #f2994a, #f2c94c); color: white; }
     .table-container, .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .btn-semaforo { cursor: pointer; transition: all 0.2s ease-in-out; border: 1px solid transparent; }
     .btn-semaforo:hover { transform: scale(1.05); opacity: 0.9; }
-    .btn-semaforo.active { border-color: #fff !important; box-shadow: 0 0 8px rgba(255,255,255,0.8); }
+    .btn-semaforo.active, .card-kpi.active { border: 2px solid #fff !important; box-shadow: 0 0 10px rgba(255,255,255,0.9); }
   </style>
 </head>
 <body>
@@ -63,41 +64,47 @@
         <label class="form-label fw-bold text-secondary">Buscador General (Orden, Aviso Y4, Equipo):</label>
         <div class="input-group shadow-sm">
           <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-          <input type="text" id="inputBuscar" class="form-control" placeholder="Buscar por Orden, Aviso, Equipo u Objeto Técnico..." onkeyup="aplicarFiltros()">
+          <input type="text" id="inputBuscar" class="form-control" placeholder="Buscar por Orden, Aviso Y4, Equipo u Objeto Técnico..." onkeyup="aplicarFiltros()">
         </div>
       </div>
     </div>
 
-    <!-- Tarjetas KPI Operativas Renombradas y Ajustadas -->
+    <!-- Tarjetas KPI Operativas con Porcentaje e Interactividad -->
     <div class="row g-3 mb-4">
       <div class="col-md-2">
         <div class="card card-kpi bg-gradient-primary shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Órdenes Totales</h6>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.72rem;">Órdenes Totales</h6>
           <h3 class="mb-0 fw-bold" id="kpiOrdenesTotales">0</h3>
         </div>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="card card-kpi bg-gradient-success shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Órdenes Gestionadas</h6>
-          <h3 class="mb-0 fw-bold" id="kpiEjecutadas">0</h3>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.72rem;">Gestionadas / Ejecutadas</h6>
+          <div class="d-flex align-items-baseline">
+            <h3 class="mb-0 fw-bold me-2" id="kpiEjecutadas">0</h3>
+            <span class="badge bg-light text-dark fw-bold fs-6" id="kpiPorcentajeEjecucion">0%</span>
+          </div>
         </div>
       </div>
       <div class="col-md-2">
         <div class="card card-kpi bg-gradient-warning shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Avisos Y4</h6>
+          <h6 class="text-uppercase mb-1" style="font-size: 0.72rem;">Avisos Y4</h6>
           <h3 class="mb-0 fw-bold" id="kpiAvisos">0</h3>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card card-kpi bg-danger shadow-sm p-3 text-white">
-          <h6 class="text-uppercase mb-1" style="font-size: 0.75rem;">Críticas S</h6>
+        <div id="cardCriticaS" class="card card-kpi bg-danger shadow-sm p-3 text-white btn-card-clickable" onclick="toggleFiltroCriticaS()">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="text-uppercase mb-1" style="font-size: 0.72rem;">Críticas S</h6>
+            <i class="fa-solid fa-filter fa-xs opacity-75"></i>
+          </div>
           <h3 class="mb-0 fw-bold" id="kpiCriticas">0</h3>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card card-kpi bg-dark shadow-sm p-3 text-white">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <h6 class="text-uppercase mb-0 text-warning" style="font-size: 0.75rem;">Semáforo de Criticidad</h6>
+            <h6 class="text-uppercase mb-0 text-warning" style="font-size: 0.72rem;">Semáforo de Criticidad</h6>
             <button class="btn btn-link btn-sm text-light p-0 text-decoration-none" style="font-size: 0.7rem;" onclick="filtrarSemaforo(0)">Ver Todos</button>
           </div>
           <div class="d-flex justify-content-around mt-2">
@@ -109,7 +116,7 @@
       </div>
     </div>
 
-    <!-- Gráficos Unificados -->
+    <!-- Gráficos -->
     <div class="row mb-4">
       <div class="col-md-7">
         <div class="chart-card" style="height: 380px; display: flex; flex-direction: column; justify-content: space-between;">
@@ -129,7 +136,7 @@
       </div>
     </div>
 
-    <!-- Tabla Dinámica Actualizada con Aviso Y4 -->
+    <!-- Tabla Dinámica Actualizada -->
     <div class="table-container mb-5">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-table-list me-2 text-primary"></i>Detalle Completo de Registros</h5>
@@ -149,8 +156,8 @@
               <th>Objeto Técnico</th>
               <th>Equipo</th>
               <th>Denominación</th>
-              <th>Crítica</th>
               <th>Criticidad</th>
+              <th>Criticidad (Semáforo)</th>
             </tr>
           </thead>
           <tbody id="tbodyInspecciones">
