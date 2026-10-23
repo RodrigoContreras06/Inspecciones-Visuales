@@ -37,22 +37,28 @@
 
   <div class="container-fluid px-4">
 
-    <!-- Filtros Superiores -->
+   <!-- Filtros Superiores Dinámicos -->
     <div class="row g-3 mb-4">
-      <div class="col-md-3">
-        <label class="form-label fw-bold text-secondary">Filtrar por Mes:</label>
+      <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Mes:</label>
         <select id="selectMes" class="form-select shadow-sm" onchange="aplicarFiltros()">
-          <option value="TODOS">Todos los Meses</option>
+          <option value="TODOS">Todos</option>
         </select>
       </div>
-      <div class="col-md-3">
-        <label class="form-label fw-bold text-secondary">Puesto de Trabajo:</label>
-        <select id="selectPuesto" class="form-select shadow-sm" onchange="aplicarFiltros()">
-          <option value="TODOS">Todos los Puestos</option>
+      <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Estación:</label>
+        <select id="selectEstacion" class="form-select shadow-sm" onchange="aplicarFiltros()">
+          <option value="TODOS">Todas</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Estatus:</label>
+        <select id="selectEstatus" class="form-select shadow-sm" onchange="aplicarFiltros()">
+          <option value="TODOS">Todos</option>
         </select>
       </div>
       <div class="col-md-6">
-        <label class="form-label fw-bold text-secondary">Buscador General:</label>
+        <label class="form-label fw-bold text-secondary">Buscador General (Orden, Aviso, Equipo):</label>
         <div class="input-group shadow-sm">
           <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
           <input type="text" id="inputBuscar" class="form-control" placeholder="Buscar por Orden, Aviso, Equipo u Objeto Técnico..." onkeyup="aplicarFiltros()">
