@@ -1,8 +1,8 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Reemplaza con tu URL de Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO5BEKLTgxRtCc7y0cm4vybYqokJ3LbR9BgCVbieygyex6zA/exec"; // Mantén tu URL exacta de Apps Script
 
 let rawData = [];
 let chartMesesInstance = null;
-let chartPuestosInstance = null;
+let chartEstatusInstance = null; // Cambiado para enfocar en Estatus/Cumplimiento
 
 document.addEventListener("DOMContentLoaded", function() {
   cargarDatos();
@@ -28,16 +28,19 @@ function poblarFiltros() {
   const selectEstacion = document.getElementById('selectEstacion');
   const selectEstatus = document.getElementById('selectEstatus');
 
+  // Limpiar y extraer valores únicos limpios
   const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
-  const estaciones = [...new Set(rawData.map(item => item.puestoTrabajo || item.estacion))].filter(Boolean);
-  const estatusList = [...new Set(rawData.map(item => item.statusUsuario || item.statusSistema))].filter(Boolean);
+  // Estación corresponde estrictamente a la columna de Puesto de Trabajo / Estación (row[4])
+  const estaciones = [...new Set(rawData.map(item => item.puestoTrabajo))].filter(Boolean);
+  // Estatus corresponde estrictamente al Status de Usuario o Sistema (ej. Pendiente, Programado, etc.)
+  const estatusList = [...new Set(rawData.map(item => item.estatus || item.statusUsuario))].filter(Boolean);
 
-  selectMes.innerHTML = '<option value="TODOS">Todos</option>';
+  selectMes.innerHTML = '<option value="TODOS">Todos los Meses</option>';
   meses.forEach(m => {
     selectMes.innerHTML += `<option value="${m}">${m}</option>`;
   });
 
-  selectEstacion.innerHTML = '<option value="TODOS">Todas</option>';
+  selectEstacion.innerHTML = '<option value="TODAS">Todas</option>';
   estaciones.forEach(e => {
     selectEstacion.innerHTML += `<option value="${e}">${e}</option>`;
   });
@@ -55,22 +58,22 @@ function aplicarFiltros() {
   const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
 
   const datosFiltrados = rawData.filter(item => {
-    const estacionItem = item.puestoTrabajo || item.estacion || '';
-    const estatusItem = item.statusUsuario || item.statusSistema || '';
-
     const cumpleMes = (mesSeleccionado === 'TODOS' || item.mes === mesSeleccionado);
-    const cumpleEstacion = (estacionSeleccionada === 'TODOS' || estacionItem === estacionSeleccionada);
+    const cumpleEstacion = (estacionSeleccionada === 'TODAS' || item.puestoTrabajo === estacionSeleccionada);
+    
+    const estatusItem = item.estatus || item.statusUsuario || '';
     const cumpleEstatus = (estatusSeleccionado === 'TODOS' || estatusItem === estatusSeleccionado);
     
-    // Búsqueda general que incluye Orden (A), Aviso (C), Equipo (N), etc.
-    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${estacionItem} ${estatusItem}`.toLowerCase();
+    // Buscador general (Orden, Aviso, Equipo, Objeto Técnico)
+    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${item.puestoTrabajo} ${estatusItem}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
     return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleBusqueda;
   });
 
   actualizarKPIs(datosFiltrados);
-  renderizarGraficos(datosFiltrados);
+  renderizarGraficoMeses(datosFiltrados);
+  renderizarGraficoEstatus(datosFiltrados); // Gráfica circular enfocada en cumplimiento por estatus
   renderizarTabla(datosFiltrados);
 }
 
@@ -114,7 +117,7 @@ function renderizarTabla(data) {
   tbody.innerHTML = html;
 }
 
-function renderizarGraficos(data) {
+function renderizarGraficoMeses(data) {
   const conteoMes = {};
   data.forEach(i => {
     const m = i.mes || 'Sin Mes';
@@ -136,24 +139,47 @@ function renderizarGraficos(data) {
     },
     options: { responsive: true, plugins: { legend: { display: false } } }
   });
+}
 
-  const conteoEstacion = {};
+function renderizarGraficoEstatus(data) {
+  // Agrupar estrictamente por Estatus (para medir porcentaje de cumplimiento/estado)
+  const conteoEstatus = {};
   data.forEach(i => {
-    const p = i.puestoTrabajo || i.estacion || 'Sin Asignar';
-    conteoEstacion[p] = (conteoEstacion[p] || 0) + 1;
+    const est = i.estatus || i.statusUsuario || 'Sin Estatus';
+    conteoEstatus[est] = (conteoEstatus[est] || 0) + 1;
   });
 
-  if (chartPuestosInstance) chartPuestosInstance.destroy();
-  const ctxPuesto = document.getElementById('chartPuestos').getContext('2d');
-  chartPuestosInstance = new Chart(ctxPuesto, {
+  const labels = Object.keys(conteoEstatus);
+  const values = Object.values(conteoEstatus);
+
+  if (chartEstatusInstance) chartEstatusInstance.destroy();
+  const ctxEstatus = document.getElementById('chartPuestos').getContext('2d');
+  
+  // Cambiamos el título visual de la tarjeta de la gráfica si lo deseas o mantenemos la dona de cumplimiento
+  chartEstatusInstance = new Chart(ctxEstatus, {
     type: 'doughnut',
     data: {
-      labels: Object.keys(conteoEstacion),
+      labels: labels,
       datasets: [{
-        data: Object.values(conteoEstacion),
-        backgroundColor: ['#11998e', '#f2994a', '#00b4db', '#e056fd', '#ff7979']
+        data: values,
+        backgroundColor: ['#11998e', '#f2994a', '#00b4db', '#e056fd', '#ff7979', '#2ed573']
       }]
     },
-    options: { responsive: true }
+    options: { 
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = values.reduce((a, b) => a + b, 0);
+              const val = context.raw;
+              const porcentaje = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+              return ` ${context.label}: ${val} (${porcentaje}%)`;
+            }
+          }
+        }
+      }
+    }
   });
 }
