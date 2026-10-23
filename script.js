@@ -3,6 +3,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw3-BvT6yDTjE19Bb9ldMuO
 let rawData = [];
 let chartMesesInstance = null;
 let chartEstatusInstance = null;
+let semaforoFiltroActivo = 0; // 0 = Todos, 1 = Nivel 1, 2 = Nivel 2, 3 = Nivel 3
 
 document.addEventListener("DOMContentLoaded", function() {
   cargarDatos();
@@ -19,7 +20,7 @@ function cargarDatos() {
     .catch(error => {
       console.error("Error al obtener los datos:", error);
       document.getElementById('tbodyInspecciones').innerHTML = 
-        '<tr><td colspan="9" class="text-center text-danger py-4">Error al cargar datos. Verifica la URL del Apps Script API.</td></tr>';
+        '<tr><td colspan="12" class="text-center text-danger py-4">Error al cargar datos. Verifica la URL de Apps Script.</td></tr>';
     });
 }
 
@@ -51,6 +52,21 @@ function poblarFiltros() {
   });
 }
 
+function filtrarSemaforo(nivel) {
+  semaforoFiltroActivo = nivel;
+  
+  // Resaltar visualmente el botón activo
+  [1, 2, 3].forEach(n => {
+    const btn = document.getElementById(`btnSem${n}`);
+    if (btn) {
+      if (n === nivel) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+
+  aplicarFiltros();
+}
+
 function aplicarFiltros() {
   const mesSeleccionado = document.getElementById('selectMes').value;
   const estacionSeleccionada = document.getElementById('selectEstacion').value;
@@ -62,10 +78,13 @@ function aplicarFiltros() {
     const cumpleEstacion = (estacionSeleccionada === 'TODAS' || item.estacion === estacionSeleccionada);
     const cumpleEstatus = (estatusSeleccionado === 'TODOS' || item.estatusAL === estatusSeleccionado);
     
-    const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${item.estacion} ${item.estatusAL}`.toLowerCase();
+    // Filtro interactivo del Semáforo (Nivel 1, 2, 3)
+    const cumpleSemaforo = (semaforoFiltroActivo === 0 || item.semaforoAV === semaforoFiltroActivo);
+
+    const textoCombinado = `${item.orden} ${item.aviso} ${item.avisoAU} ${item.equipo} ${item.objetoTecnico} ${item.estacion} ${item.estatusAL}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
-    return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleBusqueda;
+    return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleSemaforo && cumpleBusqueda;
   });
 
   actualizarKPIsAvanzados(datosFiltrados);
@@ -79,11 +98,8 @@ function actualizarKPIsAvanzados(data) {
   const ordenesUnicas = new Set(data.map(i => i.orden).filter(Boolean)).size;
   document.getElementById('kpiOrdenesTotales').innerText = ordenesUnicas;
 
-  // Órdenes Ejecutadas (ej. estatus que indiquen cierre o ejecución)
-  const ejecutadas = data.filter(i => {
-    const est = (i.estatusAL || "").toUpperCase();
-    return est.includes("EJECUT") || est.includes("CERR") || est.includes("TERMIN");
-  }).length;
+  // Ejecutadas (Estricto: Columna AL contiene 'OTAU OTEF')
+  const ejecutadas = data.filter(i => String(i.estatusAL).toUpperCase().includes("OTAU OTEF")).length;
   document.getElementById('kpiEjecutadas').innerText = ejecutadas;
 
   // Avisos Únicos
@@ -94,7 +110,7 @@ function actualizarKPIsAvanzados(data) {
   const criticasAB = data.filter(i => String(i.esCriticaAB).trim().toUpperCase() === 'S').length;
   document.getElementById('kpiCriticas').innerText = criticasAB;
 
-  // Semáforo Columna AV (1, 2, 3)
+  // Conteo Semáforo Columna AV (1, 2, 3)
   let sem1 = 0, sem2 = 0, sem3 = 0;
   data.forEach(i => {
     if (i.semaforoAV === 1) sem1++;
@@ -111,23 +127,36 @@ function renderizarTabla(data) {
   document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
     return;
   }
 
   let html = '';
   data.forEach(item => {
+    // Badge de Criticidad Semáforo
+    let semBadge = '';
+    if (item.semaforoAV === 1) semBadge = '<span class="badge bg-danger">Nivel 1</span>';
+    else if (item.semaforoAV === 2) semBadge = '<span class="badge bg-warning text-dark">Nivel 2</span>';
+    else semBadge = '<span class="badge bg-success">Nivel 3</span>';
+
+    // Badge de Crítica AB ('S')
+    const esS = String(item.esCriticaAB).trim().toUpperCase() === 'S';
+    const sBadge = esS ? '<span class="badge bg-danger">S</span>' : '<span class="badge bg-light text-muted border">-</span>';
+
     html += `
       <tr>
         <td class="fw-bold text-primary">${item.orden || ''}</td>
         <td>${item.aviso || ''}</td>
+        <td><small class="text-muted">${item.avisoAU || ''}</small></td>
         <td><span class="badge bg-light text-dark border">${item.estacion || ''}</span></td>
         <td>${item.textoBreve || ''}</td>
         <td>${item.mes || ''}</td>
-        <td><span class="badge bg-info text-dark">Sem ${item.semana || ''}</span></td>
+        <td><small>${item.fechaFinExtrema || ''}</small></td>
         <td><small>${item.objetoTecnico || ''}</small></td>
-        <td><code>${item.equipo || ''}</code></td>
+        <td><code class="text-danger">${item.equipo || ''}</code></td>
         <td><small>${item.denominacionEquipo || ''}</small></td>
+        <td class="text-center">${sBadge}</td>
+        <td class="text-center">${semBadge}</td>
       </tr>
     `;
   });
@@ -169,7 +198,7 @@ function renderizarGraficoMeses(data) {
       scales: {
         y: { 
           beginAtZero: true, 
-          suggestedMax: maxVal + 2, // Margen superior para que los números nunca se pierdan
+          suggestedMax: maxVal + 3, // Margen superior para que los valores nunca se corten
           ticks: { precision: 0 } 
         }
       }
@@ -187,7 +216,7 @@ function renderizarGraficoMeses(data) {
               ctx.font = 'bold 11px sans-serif';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'bottom';
-              ctx.fillText(dataVal, bar.x, bar.y - 5);
+              ctx.fillText(dataVal, bar.x, bar.y - 4);
             }
           });
         });
