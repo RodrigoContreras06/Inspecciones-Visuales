@@ -28,10 +28,13 @@ function poblarFiltros() {
   const selectEstacion = document.getElementById('selectEstacion');
   const selectEstatus = document.getElementById('selectEstatus');
 
-  const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
-  // Estación estrictamente de la Columna U (item.estacion)
+  const mesesOrdenadosBase = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const mesesDisponibles = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
+  
+  // Ordenar los meses según el calendario anual
+  const meses = mesesOrdenadosBase.filter(m => mesesDisponibles.includes(m));
+
   const estaciones = [...new Set(rawData.map(item => item.estacion))].filter(Boolean);
-  // Estatus estrictamente de la Columna AL (item.estatusAL)
   const estatusList = [...new Set(rawData.map(item => item.estatusAL))].filter(Boolean);
 
   selectMes.innerHTML = '<option value="TODOS">Todos los Meses</option>';
@@ -61,7 +64,6 @@ function aplicarFiltros() {
     const cumpleEstacion = (estacionSeleccionada === 'TODAS' || item.estacion === estacionSeleccionada);
     const cumpleEstatus = (estatusSeleccionado === 'TODOS' || item.estatusAL === estatusSeleccionado);
     
-    // Buscador general
     const textoCombinado = `${item.orden} ${item.aviso} ${item.equipo} ${item.objetoTecnico} ${item.estacion} ${item.estatusAL}`.toLowerCase();
     const cumpleBusqueda = busqueda === '' || textoCombinado.includes(busqueda);
 
@@ -70,7 +72,7 @@ function aplicarFiltros() {
 
   actualizarKPIs(datosFiltrados);
   renderizarGraficoMeses(datosFiltrados);
-  renderizarGraficoEstatus(datosFiltrados); // Gráfica de cumplimiento por Estatus (Columna AL)
+  renderizarGraficoEstatus(datosFiltrados);
   renderizarTabla(datosFiltrados);
 }
 
@@ -115,31 +117,70 @@ function renderizarTabla(data) {
 }
 
 function renderizarGraficoMeses(data) {
+  // Orden calendario estricto
+  const ordenMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  
   const conteoMes = {};
+  ordenMeses.forEach(m => conteoMes[m] = 0); // Inicializar todos en 0 para mostrar el año completo
+
   data.forEach(i => {
-    const m = i.mes || 'Sin Mes';
-    conteoMes[m] = (conteoMes[m] || 0) + 1;
+    const m = i.mes;
+    if (conteoMes.hasOwnProperty(m)) {
+      conteoMes[m]++;
+    }
   });
+
+  const labels = ordenMeses;
+  const values = labels.map(m => conteoMes[m]);
 
   if (chartMesesInstance) chartMesesInstance.destroy();
   const ctxMes = document.getElementById('chartMeses').getContext('2d');
+  
   chartMesesInstance = new Chart(ctxMes, {
     type: 'bar',
     data: {
-      labels: Object.keys(conteoMes),
+      labels: labels,
       datasets: [{
         label: 'Inspecciones',
-        data: Object.values(conteoMes),
+        data: values,
         backgroundColor: '#2a5298',
         borderRadius: 6
       }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    options: { 
+      responsive: true, 
+      plugins: { 
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } }
+      }
+    },
+    plugins: [{
+      // Plugin para mostrar los números directamente sobre cada barra de mes
+      id: 'customLabelsBar',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, i) => {
+          const meta = chart.getDatasetMeta(i);
+          meta.data.forEach((bar, index) => {
+            const dataVal = dataset.data[index];
+            if (dataVal > 0) {
+              ctx.fillStyle = '#333';
+              ctx.font = 'bold 11px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(dataVal, bar.x, bar.y - 4);
+            }
+          });
+        });
+      }
+    }]
   });
 }
 
 function renderizarGraficoEstatus(data) {
-  // Gráfica enfocada en el porcentaje de cumplimiento por Estatus (Columna AL)
   const conteoEstatus = {};
   data.forEach(i => {
     const est = i.estatusAL || 'Sin Estatus';
@@ -176,6 +217,27 @@ function renderizarGraficoEstatus(data) {
           }
         }
       }
-    }
+    },
+    plugins: [{
+      // Plugin para mostrar los valores numéricos directamente dentro/sobre las secciones del gráfico de dona
+      id: 'customLabelsDoughnut',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta.hidden) {
+          meta.data.forEach((element, index) => {
+            const dataVal = chart.data.datasets[0].data[index];
+            if (dataVal > 0) {
+              const { x, y } = element.tooltipPosition();
+              ctx.fillStyle = '#000';
+              ctx.font = 'bold 12px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(dataVal, x, y);
+            }
+          });
+        }
+      }
+    }]
   });
 }
