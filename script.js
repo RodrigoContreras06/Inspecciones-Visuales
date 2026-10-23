@@ -30,8 +30,6 @@ function poblarFiltros() {
 
   const mesesOrdenadosBase = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const mesesDisponibles = [...new Set(rawData.map(item => item.mes))].filter(Boolean);
-  
-  // Ordenar los meses según el calendario anual
   const meses = mesesOrdenadosBase.filter(m => mesesDisponibles.includes(m));
 
   const estaciones = [...new Set(rawData.map(item => item.estacion))].filter(Boolean);
@@ -70,22 +68,42 @@ function aplicarFiltros() {
     return cumpleMes && cumpleEstacion && cumpleEstatus && cumpleBusqueda;
   });
 
-  actualizarKPIs(datosFiltrados);
+  actualizarKPIsAvanzados(datosFiltrados);
   renderizarGraficoMeses(datosFiltrados);
   renderizarGraficoEstatus(datosFiltrados);
   renderizarTabla(datosFiltrados);
 }
 
-function actualizarKPIs(data) {
-  document.getElementById('kpiTotal').innerText = data.length;
-  
+function actualizarKPIsAvanzados(data) {
+  // Órdenes Únicas
   const ordenesUnicas = new Set(data.map(i => i.orden).filter(Boolean)).size;
-  const avisosUnicos = new Set(data.map(i => i.aviso).filter(Boolean)).size;
-  const equiposUnicos = new Set(data.map(i => i.equipo).filter(Boolean)).size;
+  document.getElementById('kpiOrdenesTotales').innerText = ordenesUnicas;
 
-  document.getElementById('kpiOrdenes').innerText = ordenesUnicas;
+  // Órdenes Ejecutadas (ej. estatus que indiquen cierre o ejecución)
+  const ejecutadas = data.filter(i => {
+    const est = (i.estatusAL || "").toUpperCase();
+    return est.includes("EJECUT") || est.includes("CERR") || est.includes("TERMIN");
+  }).length;
+  document.getElementById('kpiEjecutadas').innerText = ejecutadas;
+
+  // Avisos Únicos
+  const avisosUnicos = new Set(data.map(i => i.aviso).filter(Boolean)).size;
   document.getElementById('kpiAvisos').innerText = avisosUnicos;
-  document.getElementById('kpiEquipos').innerText = equiposUnicos;
+
+  // Críticas en Columna AB ('S')
+  const criticasAB = data.filter(i => String(i.esCriticaAB).trim().toUpperCase() === 'S').length;
+  document.getElementById('kpiCriticas').innerText = criticasAB;
+
+  // Semáforo Columna AV (1, 2, 3)
+  let sem1 = 0, sem2 = 0, sem3 = 0;
+  data.forEach(i => {
+    if (i.semaforoAV === 1) sem1++;
+    else if (i.semaforoAV === 2) sem2++;
+    else sem3++;
+  });
+  document.getElementById('semaforo1').innerText = sem1;
+  document.getElementById('semaforo2').innerText = sem2;
+  document.getElementById('semaforo3').innerText = sem3;
 }
 
 function renderizarTabla(data) {
@@ -93,7 +111,7 @@ function renderizarTabla(data) {
   document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No se encontraron registros coincidentes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
     return;
   }
 
@@ -117,21 +135,16 @@ function renderizarTabla(data) {
 }
 
 function renderizarGraficoMeses(data) {
-  // Orden calendario estricto
   const ordenMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  
   const conteoMes = {};
-  ordenMeses.forEach(m => conteoMes[m] = 0); // Inicializar todos en 0 para mostrar el año completo
+  ordenMeses.forEach(m => conteoMes[m] = 0);
 
   data.forEach(i => {
-    const m = i.mes;
-    if (conteoMes.hasOwnProperty(m)) {
-      conteoMes[m]++;
-    }
+    if (conteoMes.hasOwnProperty(i.mes)) conteoMes[i.mes]++;
   });
 
-  const labels = ordenMeses;
-  const values = labels.map(m => conteoMes[m]);
+  const values = ordenMeses.map(m => conteoMes[m]);
+  const maxVal = Math.max(...values, 5);
 
   if (chartMesesInstance) chartMesesInstance.destroy();
   const ctxMes = document.getElementById('chartMeses').getContext('2d');
@@ -139,7 +152,7 @@ function renderizarGraficoMeses(data) {
   chartMesesInstance = new Chart(ctxMes, {
     type: 'bar',
     data: {
-      labels: labels,
+      labels: ordenMeses,
       datasets: [{
         label: 'Inspecciones',
         data: values,
@@ -149,16 +162,19 @@ function renderizarGraficoMeses(data) {
     },
     options: { 
       responsive: true, 
+      maintainAspectRatio: false,
       plugins: { 
-        legend: { display: false },
-        tooltip: { enabled: true }
+        legend: { display: false }
       },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } }
+        y: { 
+          beginAtZero: true, 
+          suggestedMax: maxVal + 2, // Margen superior para que los números nunca se pierdan
+          ticks: { precision: 0 } 
+        }
       }
     },
     plugins: [{
-      // Plugin para mostrar los números directamente sobre cada barra de mes
       id: 'customLabelsBar',
       afterDatasetsDraw(chart) {
         const { ctx } = chart;
@@ -171,7 +187,7 @@ function renderizarGraficoMeses(data) {
               ctx.font = 'bold 11px sans-serif';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'bottom';
-              ctx.fillText(dataVal, bar.x, bar.y - 4);
+              ctx.fillText(dataVal, bar.x, bar.y - 5);
             }
           });
         });
@@ -204,8 +220,9 @@ function renderizarGraficoEstatus(data) {
     },
     options: { 
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom' },
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -219,10 +236,9 @@ function renderizarGraficoEstatus(data) {
       }
     },
     plugins: [{
-      // Plugin para mostrar los valores numéricos directamente dentro/sobre las secciones del gráfico de dona
       id: 'customLabelsDoughnut',
       afterDatasetsDraw(chart) {
-        const { ctx, chartArea } = chart;
+        const { ctx } = chart;
         const meta = chart.getDatasetMeta(0);
         if (!meta.hidden) {
           meta.data.forEach((element, index) => {
@@ -230,7 +246,7 @@ function renderizarGraficoEstatus(data) {
             if (dataVal > 0) {
               const { x, y } = element.tooltipPosition();
               ctx.fillStyle = '#000';
-              ctx.font = 'bold 12px sans-serif';
+              ctx.font = 'bold 11px sans-serif';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillText(dataVal, x, y);
