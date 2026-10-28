@@ -162,7 +162,7 @@ function renderizarTabla(data) {
   document.getElementById('badgeConteoFilas').innerText = `${data.length} Registros encontrados`;
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-4">No se encontraron registros coincidentes.</td></tr>';
     return;
   }
 
@@ -215,10 +215,19 @@ function renderizarTabla(data) {
 
     const y4Texto = (item.avisoY4 && item.avisoY4 !== '0' && item.avisoY4 !== item.aviso) ? item.avisoY4 : '-';
 
-    // Botón dinámico para el link de OneDrive (Columna AZ)
+    // Estatus formateado o con badge para orden visual
+    const estatusTexto = item.estatusAL || 'Sin Estatus';
+    let estatusBadge = `<small class="text-secondary fw-semibold">${estatusTexto}</small>`;
+    if (est.includes("OTAU OTEF") || est.includes("CANCELADA")) {
+      estatusBadge = `<span class="badge bg-success text-white" style="font-size: 0.75rem;">${estatusTexto}</span>`;
+    } else if (est.includes("PLANEACIÓN") || est.includes("PENDIENTE")) {
+      estatusBadge = `<span class="badge bg-light text-dark border" style="font-size: 0.75rem;">${estatusTexto}</span>`;
+    }
+
+    // Botón dinámico para el link del informe (Columna AZ)
     let btnInforme = '<span class="text-muted">-</span>';
     if (item.linkInforme && item.linkInforme.startsWith('http')) {
-      btnInforme = `<a href="${item.linkInforme}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1 shadow-sm" title="Abrir informe en OneDrive"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Ver</a>`;
+      btnInforme = `<a href="${item.linkInforme}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-1 shadow-sm" title="Abrir informe en OneDrive/SharePoint"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Ver</a>`;
     }
 
     html += `
@@ -228,6 +237,7 @@ function renderizarTabla(data) {
         <td><small class="fw-bold text-dark">${y4Texto}</small></td>
         <td><span class="badge bg-light text-dark border">${item.estacion || ''}</span></td>
         <td>${item.textoBreve || ''}</td>
+        <td>${estatusBadge}</td>
         <td>${item.mes || ''}</td>
         <td>${fechaBadge}</td>
         <td><small>${item.objetoTecnico || ''}</small></td>
