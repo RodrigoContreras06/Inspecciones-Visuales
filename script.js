@@ -220,13 +220,12 @@ function renderizarTabla(data) {
     let estatusBadge = `<small class="text-secondary fw-semibold">${estatusTexto}</small>`;
     
     if (est.includes("CANCELADA")) {
-      // Mantenemos el gris oscuro que te gustó
       estatusBadge = `<span class="badge bg-secondary text-white" style="font-size: 0.75rem;" title="Orden Cancelada">${estatusTexto}</span>`;
     } else if (est.includes("OTAU OTEF")) {
       estatusBadge = `<span class="badge bg-success text-white" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     } else if (est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO")) {
-      // Lo regresamos a texto sutil alineado para que no sature visualmente la columna
-      estatusBadge = `<small class="text-secondary fw-semibold">${estatusTexto}</small>`;
+      // Estilo sutil, sin color llamativo, con salto de línea automático en un ancho controlado
+      estatusBadge = `<span class="badge bg-light text-secondary border" style="font-size: 0.7rem; white-space: normal; text-align: left; max-width: 150px; display: inline-block; line-height: 1.1;" title="${estatusTexto}">${estatusTexto}</span>`;
     } else if (est.includes("PLANEACIÓN") || est.includes("PENDIENTE")) {
       estatusBadge = `<span class="badge bg-light text-dark border" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     }
