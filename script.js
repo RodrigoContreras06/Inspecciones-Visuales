@@ -219,11 +219,11 @@ function renderizarTabla(data) {
     const estatusTexto = item.estatusAL || 'Sin Estatus';
     let estatusBadge = `<small class="text-secondary fw-semibold">${estatusTexto}</small>`;
     
-    if (est.includes("OTAU OTEF")) {
-      estatusBadge = `<span class="badge bg-success text-white" style="font-size: 0.75rem;">${estatusTexto}</span>`;
-    } else if (est.includes("CANCELADA")) {
-      // Color distintivo para las canceladas (Gris oscuro / secondary)
+    if (est.includes("CANCELADA")) {
+      // Color gris oscuro exclusivo para canceladas para que resalten y no se confundan
       estatusBadge = `<span class="badge bg-secondary text-white" style="font-size: 0.75rem;" title="Orden Cancelada">${estatusTexto}</span>`;
+    } else if (est.includes("OTAU OTEF")) {
+      estatusBadge = `<span class="badge bg-success text-white" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     } else if (est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO")) {
       estatusBadge = `<span class="badge bg-info text-dark" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     } else if (est.includes("PLANEACIÓN") || est.includes("PENDIENTE")) {
