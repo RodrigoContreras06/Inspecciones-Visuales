@@ -215,11 +215,17 @@ function renderizarTabla(data) {
 
     const y4Texto = (item.avisoY4 && item.avisoY4 !== '0' && item.avisoY4 !== item.aviso) ? item.avisoY4 : '-';
 
-    // Estatus formateado o con badge para orden visual
+// Estatus formateado o con badge para orden visual
     const estatusTexto = item.estatusAL || 'Sin Estatus';
     let estatusBadge = `<small class="text-secondary fw-semibold">${estatusTexto}</small>`;
-    if (est.includes("OTAU OTEF") || est.includes("CANCELADA")) {
+    
+    if (est.includes("OTAU OTEF")) {
       estatusBadge = `<span class="badge bg-success text-white" style="font-size: 0.75rem;">${estatusTexto}</span>`;
+    } else if (est.includes("CANCELADA")) {
+      // Color distintivo para las canceladas (Gris oscuro / secondary)
+      estatusBadge = `<span class="badge bg-secondary text-white" style="font-size: 0.75rem;" title="Orden Cancelada">${estatusTexto}</span>`;
+    } else if (est.includes("ASIGNADO A OTRO PUESTO DE TRABAJO")) {
+      estatusBadge = `<span class="badge bg-info text-dark" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     } else if (est.includes("PLANEACIÓN") || est.includes("PENDIENTE")) {
       estatusBadge = `<span class="badge bg-light text-dark border" style="font-size: 0.75rem;">${estatusTexto}</span>`;
     }
